@@ -1,5 +1,6 @@
 require("dotenv").config();
 
+var cors = require('cors')
 const axios = require('axios');
 const express = require('express');
 const mongoose = require('mongoose');
@@ -7,8 +8,8 @@ const fs = require('fs');
 const connectToDatabase = require('./dbConnection');
 mongoose.set('strictQuery', false);
 
-const app = express();
-const port = process.env.PORT || 3000;
+const router = express();
+const port = process.env.PORT || 3333;
 
 
 const apiUrl = process.env.API_URL;
@@ -27,7 +28,8 @@ const Placa = mongoose.model('Placa', {
 
 
 // Configura o middleware para lidar com solicitações JSON
-app.use(express.json());
+
+router.use(express.json());
 
 // Função para reconhecer texto em uma imagem usando a API
 async function recognizeTextInImage(imageUrl) { // Agora recebe uma URL de imagem
@@ -55,7 +57,7 @@ async function recognizeTextInImage(imageUrl) { // Agora recebe uma URL de image
 }
 
 // Rota POST para '/cadastroPlaca'
-app.post('/cadastroPlaca', async (req, res) => { // Não é mais necessário multer
+router.post('/cadastroPlaca', async (req, res) => { 
   try {
     //const imageUrl = 'https://photos.enjoei.com.br/placa-de-carro-original-detran-era-do-meu-carro/1200xN/czM6Ly9waG90b3MuZW5qb2VpLmNvbS5ici9wcm9kdWN0cy8xMTc0NjE4Mi9hZTFkZDIzZDVlYTQxYWVlMTM4YzY0ZGIzNzhiZWE0My5qcGc'; // Substitua pela URL da imagem real
     const imageUrl = 'https://imagepng.org/wp-content/uploads/2017/08/placa-de-pare.png'; // Substitua pela URL da imagem real
@@ -89,7 +91,7 @@ app.post('/cadastroPlaca', async (req, res) => { // Não é mais necessário mul
 
 
 // Rota GET para '/relatorio/cidade/:cidade'
-app.get('/relatorio/cidade/:cidade', async (req, res) => {
+router.get('/relatorio/cidade/:cidade', async (req, res) => {
   const { cidade } = req.params;
 
   try {
@@ -117,7 +119,7 @@ app.get('/relatorio/cidade/:cidade', async (req, res) => {
 });
 
 // Rota GET para '/consulta/:placa'
-app.get('/consulta/:placa', async (req, res) => {
+router.get('/consulta/:placa', async (req, res) => {
   const { placa } = req.params;
 
   try {
@@ -140,7 +142,7 @@ function createPDF(placas, fileName) {
   const fs = require('fs');
 
   const doc = new PDFDocument();
-  const pdfPath = `./pdfs/${fileName}`; // Caminho onde o PDF será salvo
+  const pdfPath = `../pdfs/${fileName}`; // Caminho onde o PDF será salvo
 
   placas.forEach((placa, index) => {
     doc.text(`Registro ${index + 1}:`);
@@ -156,6 +158,7 @@ function createPDF(placas, fileName) {
   return pdfPath; // Retornar o caminho do PDF salvo
 }
 
-app.listen(port, () => {
+
+router.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
 });
