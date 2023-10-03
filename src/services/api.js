@@ -8,14 +8,22 @@ const fs = require('fs');
 const connectToDatabase = require('./dbConnection');
 mongoose.set('strictQuery', false);
 
-const router = express();
-const port = process.env.PORT || 3333;
+const app = express();
+const port = process.env.PORT || 3000;
 
 
 const apiUrl = process.env.API_URL;
 const apiContent = process.env.API_CONTENT_TYPE;
 const apiKey = process.env.API_KEY;
 const apiHost = process.env.API_HOST;
+
+const corsOptions = {
+  origin: 'http://localhost:3001', // Altere para a origem permitida no seu caso
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true, // Habilita o uso de credenciais, se necessário
+  optionsSuccessStatus: 204, // Retorna um status 204 para as solicitações OPTIONS
+};
+
 
 connectToDatabase();
 
@@ -27,9 +35,11 @@ const Placa = mongoose.model('Placa', {
 });
 
 
+
 // Configura o middleware para lidar com solicitações JSON
 
-router.use(express.json());
+app.use(cors(corsOptions));
+app.use(express.json());
 
 // Função para reconhecer texto em uma imagem usando a API
 async function recognizeTextInImage(imageUrl) { // Agora recebe uma URL de imagem
@@ -57,10 +67,10 @@ async function recognizeTextInImage(imageUrl) { // Agora recebe uma URL de image
 }
 
 // Rota POST para '/cadastroPlaca'
-router.post('/cadastroPlaca', async (req, res) => { 
+app.post('/cadastroPlaca', async (req, res) => { 
   try {
     //const imageUrl = 'https://photos.enjoei.com.br/placa-de-carro-original-detran-era-do-meu-carro/1200xN/czM6Ly9waG90b3MuZW5qb2VpLmNvbS5ici9wcm9kdWN0cy8xMTc0NjE4Mi9hZTFkZDIzZDVlYTQxYWVlMTM4YzY0ZGIzNzhiZWE0My5qcGc'; // Substitua pela URL da imagem real
-    const imageUrl = 'https://imagepng.org/wp-content/uploads/2017/08/placa-de-pare.png'; // Substitua pela URL da imagem real
+    const imageUrl = 'https://th.bing.com/th/id/R.b8f27a613166653e26da4536a2493b3a?rik=JNhQ5%2fw%2bt3KgtA&riu=http%3a%2f%2fstatic.tumblr.com%2f612e3305467fbdb1a3db8dc7e07cf396%2flwmhni0%2fJZHnioaul%2ftumblr_static_couxe5wdpts0044csgookw88.jpg&ehk=Y7BkBZvG5g%2fFXmB8RGsL6FhYg%2bi%2ffL8sKAeO2GCMmxk%3d&risl=&pid=ImgRaw&r=0'; // Substitua pela URL da imagem real
 
     // Reconhecimento de texto na imagem usando a função
     const result = await recognizeTextInImage(imageUrl); // Passa a URL de imagem
@@ -91,7 +101,7 @@ router.post('/cadastroPlaca', async (req, res) => {
 
 
 // Rota GET para '/relatorio/cidade/:cidade'
-router.get('/relatorio/cidade/:cidade', async (req, res) => {
+app.get('/relatorio/cidade/:cidade', async (req, res) => {
   const { cidade } = req.params;
 
   try {
@@ -119,7 +129,7 @@ router.get('/relatorio/cidade/:cidade', async (req, res) => {
 });
 
 // Rota GET para '/consulta/:placa'
-router.get('/consulta/:placa', async (req, res) => {
+app.get('/consulta/:placa', async (req, res) => {
   const { placa } = req.params;
 
   try {
@@ -159,6 +169,6 @@ function createPDF(placas, fileName) {
 }
 
 
-router.listen(port, () => {
+app.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
 });

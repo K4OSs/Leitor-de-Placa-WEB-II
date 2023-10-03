@@ -4,7 +4,6 @@ import {FiSearch} from 'react-icons/fi';
 import './styles.css';
 
 import axios from 'axios';
-import { CorsOptions } from 'cors';
 
 
 export default function App() {
@@ -20,16 +19,29 @@ export default function App() {
             return;
         }
 
+        
+
         try{
             const response = await axios({
                 method:'get',
-                url:'http://localhost:3333/consulta/'+ input
+                url:'http://localhost:3000/consulta/'+ input
             });
+
+
+
             console.log(response)
-            setPlaca(response.data)
+            setPlaca(response.data[0])
+            setInput('')
 
         }catch(error){
-            alert('Erro ao buscar a placa');
+
+            if(error.response.status === 404){
+                alert('Placa não encontrada no banco de dados')
+            }else{
+                alert('Erro ao buscar a placa');   
+            }            
+            
+            setInput('')
             console.log(error);
         }
     }
@@ -42,7 +54,7 @@ export default function App() {
                 <div className='containerInput'>
                     <input
                     type='text'
-                    placeholder='Digite o nome da cidade'
+                    placeholder='Digite o número da placa'
                     value={input}
                     onChange={(e) => setInput(e.target.value) }
                     />
@@ -53,10 +65,10 @@ export default function App() {
                 </div>
 
                 <main className='main'>
-                    <h2>Número da placa: FGH2643</h2>
+                    <h2>Número da placa: {placa.numero}</h2>
 
-                    <span>Cidade: Juazeiro</span>
-                    <span>Data/Hora: 12:23</span>
+                    <span>Cidade: {placa.cidade}</span>
+                    <span>Data/Hora: {placa.dataHora}</span>
                 </main>
 
             </div>
