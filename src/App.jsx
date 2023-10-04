@@ -19,15 +19,11 @@ export default function App() {
             return;
         }
 
-        
-
         try{
             const response = await axios({
                 method:'get',
                 url:'http://localhost:3000/consulta/'+ input
             });
-
-
 
             console.log(response)
             setPlaca(response.data[0])
@@ -64,12 +60,15 @@ export default function App() {
                     </button>
                 </div>
 
-                <main className='main'>
-                    <h2>Número da placa: {placa.numero}</h2>
+                {Object.keys(placa).length > 0 && (
 
-                    <span>Cidade: {placa.cidade}</span>
-                    <span>Data/Hora: {placa.dataHora}</span>
-                </main>
+                    <main className='main'>
+                        <h2>Placa encontrada: {placa.numero}</h2>
+
+                        <span>Cidade: {placa.cidade}</span>
+                        <span>Data/Hora: {placa.dataHora}</span>
+                    </main>
+                )}
 
             </div>
         </>
