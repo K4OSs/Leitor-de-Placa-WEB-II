@@ -4,12 +4,12 @@ var cors = require('cors')
 const axios = require('axios');
 const express = require('express');
 const mongoose = require('mongoose');
-const fs = require('fs');
 const connectToDatabase = require('./dbConnection');
 mongoose.set('strictQuery', false);
-
 const app = express();
 const port = process.env.PORT || 3000;
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' }); // Define o diretório onde os arquivos serão temporariamente armazenados
 
 
 const apiUrl = process.env.API_URL;
@@ -35,14 +35,14 @@ const Placa = mongoose.model('Placa', {
 });
 
 
-
 // Configura o middleware para lidar com solicitações JSON
 
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(upload.single('imagem')); // Use o middleware para lidar com o upload de um único arquivo com o campo 'imagem'
 
 // Função para reconhecer texto em uma imagem usando a API
-async function recognizeTextInImage(imageUrl) { // Agora recebe uma URL de imagem
+async function recognizeTextInImage(imageFile) { // Agora recebe um arquivo de imagem
 
   const options = {
     method: 'POST',
@@ -53,7 +53,7 @@ async function recognizeTextInImage(imageUrl) { // Agora recebe uma URL de image
       'X-RapidAPI-Host': apiHost,
     },
     data: {
-      imageUrl: imageUrl, // Passa a URL de imagem
+      imageFile: imageFile, // Passa o arquivo de imagem
     },
   };
 
@@ -69,25 +69,32 @@ async function recognizeTextInImage(imageUrl) { // Agora recebe uma URL de image
 // Rota POST para '/cadastroPlaca'
 app.post('/cadastroPlaca', async (req, res) => { 
   try {
-    //const imageUrl = 'https://photos.enjoei.com.br/placa-de-carro-original-detran-era-do-meu-carro/1200xN/czM6Ly9waG90b3MuZW5qb2VpLmNvbS5ici9wcm9kdWN0cy8xMTc0NjE4Mi9hZTFkZDIzZDVlYTQxYWVlMTM4YzY0ZGIzNzhiZWE0My5qcGc'; // Substitua pela URL da imagem real
-    const imageUrl = 'https://th.bing.com/th/id/R.b8f27a613166653e26da4536a2493b3a?rik=JNhQ5%2fw%2bt3KgtA&riu=http%3a%2f%2fstatic.tumblr.com%2f612e3305467fbdb1a3db8dc7e07cf396%2flwmhni0%2fJZHnioaul%2ftumblr_static_couxe5wdpts0044csgookw88.jpg&ehk=Y7BkBZvG5g%2fFXmB8RGsL6FhYg%2bi%2ffL8sKAeO2GCMmxk%3d&risl=&pid=ImgRaw&r=0'; // Substitua pela URL da imagem real
+    const imageFile = req.file; // Substitua pela URL da imagem real
+    //const imageUrl = 'https://th.bing.com/th/id/R.b8f27a613166653e26da4536a2493b3a?rik=JNhQ5%2fw%2bt3KgtA&riu=http%3a%2f%2fstatic.tumblr.com%2f612e3305467fbdb1a3db8dc7e07cf396%2flwmhni0%2fJZHnioaul%2ftumblr_static_couxe5wdpts0044csgookw88.jpg&ehk=Y7BkBZvG5g%2fFXmB8RGsL6FhYg%2bi%2ffL8sKAeO2GCMmxk%3d&risl=&pid=ImgRaw&r=0'; // Substitua pela URL da imagem real
+    
+    // O texto reconhecido está em result.text
+    const { cidade } = req.body;
+    const dataHora = new Date();
+
+    if (!imageFile) {
+      return res.status(400).send('Nenhum arquivo de imagem foi enviado.');
+    }
 
     // Reconhecimento de texto na imagem usando a função
-    const result = await recognizeTextInImage(imageUrl); // Passa a URL de imagem
+    const result = await recognizeTextInImage(imageFile); // Passa a URL de imagem
+
+    console.log(result);
 
     if (!result || !result.text) {
       return res.status(400).send('Não foi possível reconhecer o texto na imagem.');
     }
-
-    // O texto reconhecido está em result.text
-    const { cidade } = req.body;
-    const dataHora = new Date();
 
     // Salvar no MongoDB
     const placa = new Placa({
       numero: result.text,
       cidade: cidade,
       dataHora: dataHora,
+      imagem:imageFile,
     });
 
     await placa.save();
@@ -96,35 +103,6 @@ app.post('/cadastroPlaca', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).send('Erro ao cadastrar a placa.');
-  }
-});
-
-
-// Rota GET para '/relatorio/cidade/:cidade'
-app.get('/relatorio/cidade/:cidade', async (req, res) => {
-  const { cidade } = req.params;
-
-  try {
-    const placas = await Placa.find({ cidade }).exec();
-
-    if (placas.length === 0) {
-      return res.status(404).send('Nenhum registro encontrado para a cidade especificada.');
-    }
-
-    const fileName = `relatorio_${cidade}.pdf`;
-
-    // Chamar a função createPDF() e obter o caminho do PDF salvo
-    const pdfPath = createPDF(placas, fileName);
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-
-    // Enviar o PDF como resposta
-    const stream = fs.createReadStream(pdfPath);
-    stream.pipe(res);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Erro ao gerar o relatório.');
   }
 });
 
@@ -146,26 +124,81 @@ app.get('/consulta/:placa', async (req, res) => {
   }
 });
 
+// Rota GET para '/relatorio/cidade/:cidade'
+app.get('/relatorio/cidade/:cidade', async (req, res) => {
+  const { cidade } = req.params;
+
+  try {
+    const placas = await Placa.find({ cidade }).exec();
+    console.log('placas.length:', placas.length);
+
+    if (placas.length === 0) {
+      return res.status(404).send('Nenhum registro encontrado para a cidade especificada.');
+    }
+
+    const fileName = `relatorio_${cidade}.pdf`;
+
+    // Chamar a função createPDF() para criar o PDF e aguardar a Promise
+    const pdfBuffer = await createPDF(placas, fileName);
+    console.log('pdfbuffer.length:', pdfBuffer.length);
+
+    // Verificar se o buffer do PDF está vazio ou inválido
+    if (!pdfBuffer || pdfBuffer.length === 0) {
+      return res.status(500).send('Erro ao gerar o relatório: PDF vazio.');
+    }    
+
+    // Enviar o PDF como resposta
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+    // Enviar o buffer do PDF como resposta
+    res.end(pdfBuffer);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Erro ao gerar o relatório.');
+  }
+});
+
 // Função para criar um PDF a partir dos registros de placa
 function createPDF(placas, fileName) {
-  const PDFDocument = require('pdfkit');
+  
   const fs = require('fs');
+  const PDFDocument = require('pdfkit');
+  const MemoryStream = require('memorystream'); // Usar MemoryStream para armazenar o PDF em memória
 
   const doc = new PDFDocument();
-  const pdfPath = `../pdfs/${fileName}`; // Caminho onde o PDF será salvo
+  const tmpFilePath = `./uploads/${fileName}`;
+  
+  doc.pipe(fs.createWriteStream(tmpFilePath)); // Redirecionar a saída do PDF para o arquivo temporário
 
   placas.forEach((placa, index) => {
+    //Adicione mensagens de depuração para verificar os dados dos registros
+    console.log(`Adicionando registro ${index + 1} ao PDF:`);
+    console.log(`Número da Placa: ${placa.numero}`);
+    console.log(`Cidade: ${placa.cidade}`);
+    console.log(`Data e Hora: ${placa.dataHora}`);
+
+
     doc.text(`Registro ${index + 1}:`);
     doc.text(`Número da Placa: ${placa.numero}`);
     doc.text(`Cidade: ${placa.cidade}`);
     doc.text(`Data e Hora: ${placa.dataHora}`);
+
     doc.moveDown();
   });
 
-  doc.pipe(fs.createWriteStream(pdfPath)); // Salvar o PDF no sistema de arquivos
   doc.end();
-
-  return pdfPath; // Retornar o caminho do PDF salvo
+  
+  // Manipule o evento 'finish' para retornar o conteúdo do arquivo temporário como um buffer
+  return new Promise((resolve, reject) => {
+    fs.readFile(tmpFilePath, (err, data) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(data);
+      }
+    });
+  });
 }
 
 

@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import {FiSearch} from 'react-icons/fi';
 import './styles.css';
+import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
+import './styles/react-tabs.css'; // Importe o estilo padrão da biblioteca
 
 import axios from 'axios';
 
@@ -11,8 +13,9 @@ export default function App() {
 
     const [input, setInput] = useState('')
     const [placa, setPlaca] = useState({})
+    const [relatorio, setRelatorio] = useState({})
 
-    async function handleSearch(){
+    async function handleSearchPlaca(){
         console.log(input);
         if(input === ''){
             alert('Preencha o número da placa')
@@ -42,36 +45,119 @@ export default function App() {
         }
     }
 
+    async function gerarRelatorio(){
+        console.log(input);
+        if(input === ''){
+            alert('Preencha o nome da cidade')
+            return;
+        }
+
+        try{
+            const response = await axios({
+                method:'get',
+                url:'http://localhost:3000/relatorio/cidade/'+ input
+            });
+
+            console.log(response)
+            setRelatorio(response.data)
+            setInput('')
+
+        }catch(error){
+
+            if(error.response.status === 404){
+                alert('Cidade não encontrada no banco de dados')
+            }else{
+                alert('Erro ao buscar a cidade');   
+            }            
+            
+            setInput('')
+            console.log(error);
+        }
+    }
+    
+
     return (
-        <>
-            <div className='container'>
-                <h1 className='title'>Buscador de placa</h1>
 
-                <div className='containerInput'>
-                    <input
-                    type='text'
-                    placeholder='Digite o número da placa'
-                    value={input}
-                    onChange={(e) => setInput(e.target.value) }
-                    />
+        <div className='container'>
 
-                    <button className='buttonSearch' onClick={handleSearch}>
-                        <FiSearch size={25} color='#FFF'/>
-                    </button>
-                </div>
+            <Tabs>
+                <TabList>
+                    <Tab>Aba 1</Tab>
+                    <Tab>Aba 2</Tab>
+                    <Tab>Aba 3</Tab>
+                </TabList>
 
-                {Object.keys(placa).length > 0 && (
+                {/* Conteúdo das abas */}
+                <TabPanel>
+                    <div>
+                        {/* Conteúdo da Aba 1 */}
+                        <h1 className='title'>Buscador de placa</h1>
 
-                    <main className='main'>
-                        <h2>Placa encontrada: {placa.numero}</h2>
+                        <div className='containerInput'>
+                            <input
+                            type='text'
+                            placeholder='Digite o número da placa'
+                            value={input}
+                            onChange={(e) => setInput(e.target.value) }
+                            />
 
-                        <span>Cidade: {placa.cidade}</span>
-                        <span>Data/Hora: {placa.dataHora}</span>
-                    </main>
-                )}
+                            <button className='buttonSearch' onClick={handleSearchPlaca}>
+                                <FiSearch size={25} color='#FFF'/>
+                            </button>
+                        </div>
 
-            </div>
-        </>
+                        {Object.keys(placa).length > 0 && (
+
+                            <main className='main'>
+                                <h2>Placa encontrada: {placa.numero}</h2>
+
+                                <span>Cidade: {placa.cidade}</span>
+                                <span>Data/Hora: {placa.dataHora}</span>
+                            </main>
+                        )}
+
+                    </div>
+                </TabPanel>
+
+                <TabPanel>
+                    <div>
+                        {/* Conteúdo da Aba 2 */}
+                        <h1 className='title'>Relatório PDF</h1>
+
+                        <div className='containerInput'>
+                            <input
+                            type='text'
+                            placeholder='Digite o nome da cidade'
+                            value={input}
+                            onChange={(e) => setInput(e.target.value) }
+                            />
+                        
+                            <button className='buttonSearch' onClick={gerarRelatorio}>
+                                <FiSearch size={25} color='#FFF'/>
+                            </button>
+                        </div>
+
+                        {Object.keys(relatorio).length > 0 && (
+
+                            <main className='main'>
+                                <a href="http://localhost:3000/relatorio/cidade/Crato" download={relatorio}>link download</a>
+                            </main>
+                        )}
+
+                    </div>
+                </TabPanel>
+
+                <TabPanel>
+                    <div>
+                        {/* Conteúdo da Aba 3 */}
+                        <p>Conteúdo da Aba 3</p>
+                    </div>
+                </TabPanel>
+
+            </Tabs>
+
+        </div>
+
     );
 }
 
