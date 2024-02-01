@@ -13,7 +13,7 @@ export default function App() {
 
     const [input, setInput] = useState('')
     const [placa, setPlaca] = useState({})
-    const [relatorio, setRelatorio] = useState({})
+//    const [relatorio, setRelatorio] = useState(null)
 
     async function handleSearchPlaca(){
         console.log(input);
@@ -55,16 +55,30 @@ export default function App() {
         try{
             const response = await axios({
                 method:'get',
-                url:'http://localhost:3000/relatorio/cidade/'+ input
+                url:`http://localhost:3000/relatorio/cidade/${input}`,
+                responseType: 'blob',
             });
 
-            console.log(response)
-            setRelatorio(response.data)
-            setInput('')
+            // Cria um URl temporário para o arquivo PDF
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+
+            // Cria um link de download
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `relatório_${input}.pdf`);
+            document.body.appendChild(link);
+
+            // Simular um clique no link para iniciar o download
+            link.click();
+            
+            // Limpar o URL temporário
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            setInput('');
 
         }catch(error){
-
-            if(error.response.status === 404){
+            if(error.response && error.response.status === 404){
                 alert('Cidade não encontrada no banco de dados')
             }else{
                 alert('Erro ao buscar a cidade');   
@@ -136,14 +150,6 @@ export default function App() {
                                 <FiSearch size={25} color='#FFF'/>
                             </button>
                         </div>
-
-                        {Object.keys(relatorio).length > 0 && (
-
-                            <main className='main'>
-                                <a href="http://localhost:3000/relatorio/cidade/Crato" download={relatorio}>link download</a>
-                            </main>
-                        )}
-
                     </div>
                 </TabPanel>
 

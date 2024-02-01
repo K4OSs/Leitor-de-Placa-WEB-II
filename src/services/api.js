@@ -11,7 +11,7 @@ const port = process.env.PORT || 3000;
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' }); // Define o diretório onde os arquivos serão temporariamente armazenados
 const bcrypt = require('bcrypt');
-import { PDFDocument } from 'pdf-lib'
+
 
 const apiUrl = process.env.API_URL;
 const apiContent = process.env.API_CONTENT_TYPE;
@@ -137,7 +137,7 @@ app.get('/relatorio/cidade/:cidade', async (req, res) => {
 
   try {
     const placas = await Placa.find({ cidade }).exec();
-    console.log('placas.length:', placas.length);
+    //console.log('placas.length:', placas.length);
 
     if (placas.length === 0) {
       return res.status(404).send('Nenhum registro encontrado para a cidade especificada.');
@@ -145,21 +145,20 @@ app.get('/relatorio/cidade/:cidade', async (req, res) => {
 
     const fileName = `relatorio_${cidade}.pdf`;
 
-    // Chamar a função createPDF() para criar o PDF e aguardar a Promise
-    const pdfBuffer = await createPDF(placas, fileName);
-    console.log('pdfbuffer.length:', pdfBuffer.length);
+    // Chamar a função createPDF() para criar o PDF
+    const pdfBuffer = await createPDF(placas);
 
-    // Verificar se o buffer do PDF está vazio ou inválido
-    if (!pdfBuffer || pdfBuffer.length === 0) {
-      return res.status(500).send('Erro ao gerar o relatório: PDF vazio.');
-    }    
+    // // Salvar o PDF em um arquivo (apenas para depuração)
+    // const fs = require('fs');
+    // fs.writeFileSync(fileName, pdfBuffer);
+    // console.log(`PDF salvo em ${fileName}`);
+  
 
     // Enviar o PDF como resposta
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.send(pdfBuffer); // Enviar o buffer do PDF como resposta
 
-    // Enviar o buffer do PDF como resposta
-    res.end(pdfBuffer);
   } catch (error) {
     console.error(error);
     res.status(500).send('Erro ao gerar o relatório.');
@@ -198,34 +197,33 @@ app.post('/cadastrarUsuario', async (req, res) => {
 });
 
 // Função para criar um PDF a partir dos registros de placa
-async function createPDF(placas, fileName) {
-  
-  const fs = require('fs');
+async function createPDF(placas) {
+
   const PDFDocument = require('pdfkit');
-  const blobStream = require('blob-stream');
-  //const MemoryStream = require('memorystream'); // Usar MemoryStream para armazenar o PDF em memória
+  return new Promise((resolve, reject) => {
+    const buffers = [];
+    const doc = new PDFDocument();
 
-  const doc = new PDFDocument();
-  const tmpFilePath = `./uploads/${fileName}`;
-  
-  const stream = doc.pipe(blobStream()); // Redirecionar a saída do PDF para o arquivo temporário
+    doc.on('data', (chunk) => {
+      buffers.push(chunk);
+    });
 
-  placas.forEach((placa, index) => {
+    doc.on('end', () => {
+      const pdfBuffer = Buffer.concat(buffers);
+      resolve(pdfBuffer);
+    });
 
-    
-    doc.text(`Registro ${index + 1}:`);
-    doc.text(`Número da Placa: ${placa.numero}`);
-    doc.text(`Cidade: ${placa.cidade}`);
-    doc.text(`Data e Hora: ${placa.dataHora}`);
+    placas.forEach((placa, index) => {
+      //console.log(`Adicionando informações para Registro ${index + 1}`);
+      doc.text(`Registro ${index + 1}:`);
+      doc.text(`Número da Placa: ${placa.numero}`);
+      doc.text(`Cidade: ${placa.cidade}`);
+      doc.text(`Data e Hora: ${placa.dataHora}`);
 
-    doc.moveDown();
-  });
+      doc.moveDown();
+    });
 
-  doc.end();
-  
-  // Manipule o evento 'finish' para retornar o conteúdo do arquivo temporário como um buffer
-  return stream.on('finish', function(){
-    const url = stream.toBlobURL(tmpFilePath);
+    doc.end();
   });
 }
 
