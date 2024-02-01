@@ -10,7 +10,8 @@ const app = express();
 const port = process.env.PORT || 3000;
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' }); // Define o diretório onde os arquivos serão temporariamente armazenados
-
+const bcrypt = require('bcrypt');
+import { PDFDocument } from 'pdf-lib'
 
 const apiUrl = process.env.API_URL;
 const apiContent = process.env.API_CONTENT_TYPE;
@@ -30,10 +31,16 @@ connectToDatabase();
 // Model do registro de placa
 const Placa = mongoose.model('Placa', {
   numero: String,
+  
   cidade: String,
   dataHora: Date,
 });
 
+// Model do usuário
+const Usuario = mongoose.model('Usuario', {
+  email: String,
+  senha: String, // A senha será armazenada criptografada
+});
 
 // Configura o middleware para lidar com solicitações JSON
 
@@ -156,29 +163,56 @@ app.get('/relatorio/cidade/:cidade', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).send('Erro ao gerar o relatório.');
+    
+  }
+});
+
+// Rota POST para '/cadastrarUsuario'
+app.post('/cadastrarUsuario', async (req, res) => {
+  try {
+    const { email, senha } = req.body;
+
+    // Verifica se o email já está cadastrado
+    const existingUser = await Usuario.findOne({ email }).exec();
+    if (existingUser) {
+      return res.status(400).send('Este email já está cadastrado.');
+    }
+
+    // Criptografa a senha antes de armazenar no banco de dados
+    const hashedPassword = await bcrypt.hash(senha, 10);
+
+    // Cria um novo usuário
+    const novoUsuario = new Usuario({
+      email,
+      senha: hashedPassword,
+    });
+
+    // Salva o novo usuário no banco de dados
+    await novoUsuario.save();
+
+    res.status(201).send('Usuário cadastrado com sucesso.');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Erro ao cadastrar o usuário.');
   }
 });
 
 // Função para criar um PDF a partir dos registros de placa
-function createPDF(placas, fileName) {
+async function createPDF(placas, fileName) {
   
   const fs = require('fs');
   const PDFDocument = require('pdfkit');
-  const MemoryStream = require('memorystream'); // Usar MemoryStream para armazenar o PDF em memória
+  const blobStream = require('blob-stream');
+  //const MemoryStream = require('memorystream'); // Usar MemoryStream para armazenar o PDF em memória
 
   const doc = new PDFDocument();
   const tmpFilePath = `./uploads/${fileName}`;
   
-  doc.pipe(fs.createWriteStream(tmpFilePath)); // Redirecionar a saída do PDF para o arquivo temporário
+  const stream = doc.pipe(blobStream()); // Redirecionar a saída do PDF para o arquivo temporário
 
   placas.forEach((placa, index) => {
-    //Adicione mensagens de depuração para verificar os dados dos registros
-    console.log(`Adicionando registro ${index + 1} ao PDF:`);
-    console.log(`Número da Placa: ${placa.numero}`);
-    console.log(`Cidade: ${placa.cidade}`);
-    console.log(`Data e Hora: ${placa.dataHora}`);
 
-
+    
     doc.text(`Registro ${index + 1}:`);
     doc.text(`Número da Placa: ${placa.numero}`);
     doc.text(`Cidade: ${placa.cidade}`);
@@ -190,17 +224,10 @@ function createPDF(placas, fileName) {
   doc.end();
   
   // Manipule o evento 'finish' para retornar o conteúdo do arquivo temporário como um buffer
-  return new Promise((resolve, reject) => {
-    fs.readFile(tmpFilePath, (err, data) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(data);
-      }
-    });
+  return stream.on('finish', function(){
+    const url = stream.toBlobURL(tmpFilePath);
   });
 }
-
 
 app.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
