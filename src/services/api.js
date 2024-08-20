@@ -5,13 +5,15 @@ const axios = require('axios');
 const express = require('express');
 const mongoose = require('mongoose');
 const connectToDatabase = require('./dbConnection');
-mongoose.set('strictQuery', false);
+mongoose.set('strictQuery', true);
 const app = express();
 const port = process.env.PORT || 3000;
+
+const bodyParser = require('body-parser');
 const multer = require('multer');
+const fs = require('fs');
 const upload = multer({ dest: 'uploads/' }); // Define o diretório onde os arquivos serão temporariamente armazenados
 const bcrypt = require('bcrypt');
-
 
 const apiUrl = process.env.API_URL;
 const apiContent = process.env.API_CONTENT_TYPE;
@@ -31,7 +33,7 @@ connectToDatabase();
 // Model do registro de placa
 const Placa = mongoose.model('Placa', {
   numero: String,
-  
+  estado: String,
   cidade: String,
   dataHora: Date,
 });
@@ -43,13 +45,16 @@ const Usuario = mongoose.model('Usuario', {
 });
 
 // Configura o middleware para lidar com solicitações JSON
-
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors(corsOptions));
 app.use(express.json());
-app.use(upload.single('imagem')); // Use o middleware para lidar com o upload de um único arquivo com o campo 'imagem'
 
 // Função para reconhecer texto em uma imagem usando a API
 async function recognizeTextInImage(imageFile) { // Agora recebe um arquivo de imagem
+
+  const imageBase64 = fs.readFileSync(imageFile.path, { encoding: 'base64' });
+  const imageData = `data:image/png;base64,${imageBase64}`; // Formata corretamente
 
   const options = {
     method: 'POST',
@@ -60,12 +65,13 @@ async function recognizeTextInImage(imageFile) { // Agora recebe um arquivo de i
       'X-RapidAPI-Host': apiHost,
     },
     data: {
-      imageFile: imageFile, // Passa o arquivo de imagem
+      imageUrl: imageData, // Envia a string base64 no campo "imageUrl"
     },
   };
 
   try {
     const response = await axios.request(options);
+    console.log("Resposta da API de OCR:", response.data); // Log da resposta para verificação
     return response.data;
   } catch (error) {
     console.error('Erro ao chamar a API de reconhecimento de texto:', error);
@@ -73,40 +79,65 @@ async function recognizeTextInImage(imageFile) { // Agora recebe um arquivo de i
   }
 }
 
-// Rota POST para '/cadastroPlaca'
-app.post('/cadastroPlaca', async (req, res) => { 
-  try {
-    const imageFile = req.file; // Substitua pela URL da imagem real
-    //const imageUrl = 'https://th.bing.com/th/id/R.b8f27a613166653e26da4536a2493b3a?rik=JNhQ5%2fw%2bt3KgtA&riu=http%3a%2f%2fstatic.tumblr.com%2f612e3305467fbdb1a3db8dc7e07cf396%2flwmhni0%2fJZHnioaul%2ftumblr_static_couxe5wdpts0044csgookw88.jpg&ehk=Y7BkBZvG5g%2fFXmB8RGsL6FhYg%2bi%2ffL8sKAeO2GCMmxk%3d&risl=&pid=ImgRaw&r=0'; // Substitua pela URL da imagem real
-    
-    // O texto reconhecido está em result.text
-    const { cidade } = req.body;
-    const dataHora = new Date();
+function processarTexto(texto) {
+  // Remove quebras de linha e espaços extras
+  const cleanedText = texto.replace(/\n/g, ' ').trim();
+  const regexPlaca = /([A-Z]{2})\s+([\w\s]+?)\s+([A-Z]{3}-\d{4})/;
+  const match = cleanedText.match(regexPlaca);
 
-    if (!imageFile) {
+  if (match) {
+    const estado = match[1];
+    const cidade = match[2].trim();
+    const numeroPlaca = match[3].replace('-', ''); // Remove hífen se necessário
+
+    return { estado, cidade, numeroPlaca };
+  } else {
+    return null;
+  }
+}
+
+// Rota POST para '/cadastroPlaca'
+app.post('/cadastroPlaca', upload.single('imagem'), async (req, res) => { 
+  try {
+    const imageFile = req.file;
+
+    if (!req.file) {
       return res.status(400).send('Nenhum arquivo de imagem foi enviado.');
     }
 
-    // Reconhecimento de texto na imagem usando a função
-    const result = await recognizeTextInImage(imageFile); // Passa a URL de imagem
+    // Reconhecimento de texto na imagem usando a API de OCR
+    const result = await recognizeTextInImage(imageFile);
 
-    console.log(result);
+    // Apagar o arquivo temporário após o uso
+    fs.unlinkSync(imageFile.path);
 
     if (!result || !result.text) {
       return res.status(400).send('Não foi possível reconhecer o texto na imagem.');
     }
 
-    // Salvar no MongoDB
-    const placa = new Placa({
-      numero: result.text,
-      cidade: cidade,
-      dataHora: dataHora,
-      imagem:imageFile,
-    });
+    // Processar o texto reconhecido
+    const infoPlaca = processarTexto(result.text);
 
-    await placa.save();
+    console.log('Texto reconhecido:', result.text);
+    console.log('Resultado do regex:', infoPlaca);
 
-    res.status(201).send('Placa cadastrada com sucesso.');
+    if (infoPlaca) {
+      const dataHora = new Date();
+
+      // Salvar informações da placa no banco (sem armazenar a imagem)
+      const placa = new Placa({
+        numero: infoPlaca.numeroPlaca,
+        cidade: infoPlaca.cidade || 'Desconhecida',
+        estado: infoPlaca.estado,
+        dataHora: dataHora,
+      });
+
+      await placa.save();
+
+      res.status(201).send('Placa cadastrada com sucesso.');
+    } else {
+      res.status(400).send('O texto reconhecido não está no formato esperado.');
+    }
   } catch (error) {
     console.error(error);
     res.status(500).send('Erro ao cadastrar a placa.');
