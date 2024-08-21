@@ -26,6 +26,7 @@ export default function App() {
             const response = await axios({
                 method:'get',
                 url:`/consulta/${input}`
+                url:'http://localhost:3000/consulta/'+ input
             });
 
             console.log(response)
