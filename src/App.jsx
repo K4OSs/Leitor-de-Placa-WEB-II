@@ -10,7 +10,6 @@ const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
 export default function App() {
     
-
     const [input, setInput] = useState('')
     const [placa, setPlaca] = useState({})
 //    const [relatorio, setRelatorio] = useState(null)
@@ -60,22 +59,22 @@ export default function App() {
             });
 
             // Cria um URl temporário para o arquivo PDF
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
 
             // Cria um link de download
             const link = document.createElement('a');
             link.href = url;
             link.setAttribute('download', `relatório_${input}.pdf`);
+           
+            // Adiciona o link ao DOM e simula o clique
             document.body.appendChild(link);
-
-            // Simular um clique no link para iniciar o download
             link.click();
             
-            // Limpar o URL temporário
+            // Limpa o URL temporário
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
 
-            setInput('');
+            setInput(''); // Limpa o input após o download
 
         }catch(error){
             if(error.response && error.response.status === 404){
