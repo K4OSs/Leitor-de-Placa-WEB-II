@@ -21,7 +21,7 @@ const apiKey = process.env.API_KEY;
 const apiHost = process.env.API_HOST;
 
 const corsOptions = {
-  origin: 'http://localhost:3001', // Altere para a origem permitida no seu caso
+  origin: '3001', // Altere para a origem permitida no seu caso
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: true, // Habilita o uso de credenciais, se necessário
   optionsSuccessStatus: 204, // Retorna um status 204 para as solicitações OPTIONS
@@ -259,5 +259,7 @@ async function createPDF(placas) {
 }
 
 app.listen(port, () => {
-  console.log(`Servidor rodando em http://localhost:${port}`);
+  console.log(`Servidor rodando em ${port}`);
 });
+
+module.exports = app;

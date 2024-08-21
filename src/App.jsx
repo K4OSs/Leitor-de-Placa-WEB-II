@@ -25,7 +25,7 @@ export default function App() {
         try{
             const response = await axios({
                 method:'get',
-                url:`http://localhost:3000/consulta/${input}`
+                url:`/consulta/${input}`
             });
 
             console.log(response)
@@ -55,7 +55,7 @@ export default function App() {
         try{
             const response = await axios({
                 method:'get',
-                url:`http://localhost:3000/relatorio/cidade/${input}`,
+                url:`/relatorio/cidade/${input}`,
                 responseType: 'blob',
             });
 
