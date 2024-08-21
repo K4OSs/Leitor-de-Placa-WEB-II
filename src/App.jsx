@@ -4,9 +4,9 @@ import {FiSearch} from 'react-icons/fi';
 import './styles.css';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import './styles/react-tabs.css'; // Importe o estilo padrão da biblioteca
-
 import axios from 'axios';
 
+const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
 export default function App() {
     
@@ -25,7 +25,7 @@ export default function App() {
         try{
             const response = await axios({
                 method:'get',
-                url:`http://localhost:3000/consulta/${input}`
+                url:`${apiUrl}/consulta/${input}`
             });
 
             console.log(response)
@@ -55,7 +55,7 @@ export default function App() {
         try{
             const response = await axios({
                 method:'get',
-                url:`http://localhost:3000/relatorio/cidade/${input}`,
+                url:`${apiUrl}/relatorio/cidade/${input}`,
                 responseType: 'blob',
             });
 

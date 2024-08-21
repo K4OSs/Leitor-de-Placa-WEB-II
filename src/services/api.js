@@ -19,14 +19,14 @@ const apiUrl = process.env.API_URL;
 const apiContent = process.env.API_CONTENT_TYPE;
 const apiKey = process.env.API_KEY;
 const apiHost = process.env.API_HOST;
+const frontendUrl = process.env.FRONTEND_URL
 
 const corsOptions = {
-  origin: 'http://localhost:3001', // Altere para a origem permitida no seu caso
+  origin: frontendUrl || 'http://localhost:3001', // Altere para a origem permitida no seu caso
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: true, // Habilita o uso de credenciais, se necessário
   optionsSuccessStatus: 204, // Retorna um status 204 para as solicitações OPTIONS
 };
-
 
 connectToDatabase();
 
