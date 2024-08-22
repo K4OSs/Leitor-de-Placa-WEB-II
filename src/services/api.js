@@ -22,9 +22,9 @@ const apiHost = process.env.API_HOST;
 const frontendUrl = process.env.FRONTEND_URL
 
 const corsOptions = {
-  origin: frontendUrl || 'http://localhost:3001', // Altere para a origem permitida no seu caso
+  origin: frontendUrl || 'http://localhost:3000',
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-  credentials: true, // Habilita o uso de credenciais, se necessário
+  credentials: false, // Habilita o uso de credenciais, se necessário
   optionsSuccessStatus: 204, // Retorna um status 204 para as solicitações OPTIONS
 };
 
