@@ -19,8 +19,9 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
+    "build": "npm install && npm run build",
     "start": "node api/index.js",
-    "vercel-build": "npm install && npm run build"
+    "vercel-build": "echo hello"
   },
   "browserslist": {
     "production": [
