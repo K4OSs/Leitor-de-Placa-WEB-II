@@ -13,6 +13,7 @@
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "fs": "^0.0.1-security",
+    "helmet": "^7.1.0",
     "memorystream": "^0.3.1",
     "mongoose": "^7.5.3",
     "multer": "^1.4.5-lts.1",
@@ -26,16 +27,9 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "vercel-build": "echo hello",
+    "start": "node api/index.js"
   },
   "browserslist": {
     "production": [

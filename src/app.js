@@ -4,16 +4,18 @@ var cors = require('cors')
 const axios = require('axios');
 const express = require('express');
 const mongoose = require('mongoose');
+const path = require('path');  // Para servir arquivos estáticos
 const connectToDatabase = require('./dbConnection');
 mongoose.set('strictQuery', true);
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT;
 
 const bodyParser = require('body-parser');
 const multer = require('multer');
 const fs = require('fs');
 const upload = multer({ dest: 'uploads/' }); // Define o diretório onde os arquivos serão temporariamente armazenados
 const bcrypt = require('bcrypt');
+const helmet = require('helmet');
 
 const apiUrl = process.env.API_URL;
 const apiContent = process.env.API_CONTENT_TYPE;
@@ -22,7 +24,7 @@ const apiHost = process.env.API_HOST;
 const frontendUrl = process.env.FRONTEND_URL
 
 const corsOptions = {
-  origin: frontendUrl || 'http://localhost:3000',
+  origin: frontendUrl,
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: false, // Habilita o uso de credenciais, se necessário
   optionsSuccessStatus: 204, // Retorna um status 204 para as solicitações OPTIONS
@@ -44,11 +46,16 @@ const Usuario = mongoose.model('Usuario', {
   senha: String, // A senha será armazenada criptografada
 });
 
+// Servindo arquivos estáticos da pasta "public"
+app.use(express.static(path.join(__dirname, '../public')));  // Certifique-se de apontar para o diretório correto
+
 // Configura o middleware para lidar com solicitações JSON
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors(corsOptions));
 app.use(express.json());
+
+app.use(helmet());
 
 // Função para reconhecer texto em uma imagem usando a API
 async function recognizeTextInImage(imageFile) { // Agora recebe um arquivo de imagem
@@ -162,8 +169,8 @@ app.get('/consulta/:placa', async (req, res) => {
   }
 });
 
-// Rota GET para '/relatorio/cidade/:cidade'
-app.get('/relatorio/cidade/:cidade', async (req, res) => {
+// Rota GET para '/relatorio/:cidade'
+app.get('/relatorio/:cidade', async (req, res) => {
   const { cidade } = req.params;
 
   try {
@@ -261,3 +268,5 @@ async function createPDF(placas) {
 app.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
 });
+
+module.exports = app
