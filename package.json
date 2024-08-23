@@ -19,8 +19,8 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "node api/index.js",
-    "vercel-build": "echo hello"
+    "vercel-build": "echo hello",
+    "start": "node api/index.js"
   },
   "browserslist": {
     "production": [
