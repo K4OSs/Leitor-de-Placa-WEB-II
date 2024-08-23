@@ -24,7 +24,7 @@ const apiHost = process.env.API_HOST;
 const frontendUrl = process.env.FRONTEND_URL
 
 const corsOptions = {
-  origin: frontendUrl,
+  origin: frontendUrl || 8080,
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: false, // Habilita o uso de credenciais, se necessário
   optionsSuccessStatus: 204, // Retorna um status 204 para as solicitações OPTIONS
