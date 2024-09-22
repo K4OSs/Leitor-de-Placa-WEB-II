@@ -8,23 +8,23 @@ const path = require('path');  // Para servir arquivos estáticos
 const connectToDatabase = require('./dbConnection');
 mongoose.set('strictQuery', true);
 const app = express();
-const port = process.env.PORT;
-
-const bodyParser = require('body-parser');
 const multer = require('multer');
 const fs = require('fs');
 const upload = multer({ dest: 'uploads/' }); // Define o diretório onde os arquivos serão temporariamente armazenados
 const bcrypt = require('bcrypt');
 const helmet = require('helmet');
+const jwt = require('jsonwebtoken');
 
-const apiUrl = process.env.API_URL;
+const port = process.env.PORT;
+const secretKey = process.env.TOKEN_KEY; // Defina uma chave secreta no arquivo .env
+const ocrApiUrl = process.env.OCR_API_URL;
 const apiContent = process.env.API_CONTENT_TYPE;
 const apiKey = process.env.API_KEY;
 const apiHost = process.env.API_HOST;
 const frontendUrl = process.env.FRONTEND_URL
 
 const corsOptions = {
-  origin: frontendUrl || 8080,
+  origin: [frontendUrl, `http://localhost:3000`],
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: false, // Habilita o uso de credenciais, se necessário
   optionsSuccessStatus: 204, // Retorna um status 204 para as solicitações OPTIONS
@@ -42,7 +42,8 @@ const Placa = mongoose.model('Placa', {
 
 // Model do usuário
 const Usuario = mongoose.model('Usuario', {
-  email: String,
+  nome: String,
+  email: { type: String, unique: true },  // Certifique-se de que o campo "email" seja único
   senha: String, // A senha será armazenada criptografada
 });
 
@@ -50,61 +51,28 @@ const Usuario = mongoose.model('Usuario', {
 app.use(express.static(path.join(__dirname, '../public')));  // Certifique-se de apontar para o diretório correto
 
 // Configura o middleware para lidar com solicitações JSON
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors(corsOptions));
 app.use(express.json());
-
 app.use(helmet());
 
-// Função para reconhecer texto em uma imagem usando a API
-async function recognizeTextInImage(imageFile) { // Agora recebe um arquivo de imagem
-
-  const imageBase64 = fs.readFileSync(imageFile.path, { encoding: 'base64' });
-  const imageData = `data:image/png;base64,${imageBase64}`; // Formata corretamente
-
-  const options = {
-    method: 'POST',
-    url: apiUrl,
-    headers: {
-      'content-type': apiContent,
-      'X-RapidAPI-Key': apiKey,
-      'X-RapidAPI-Host': apiHost,
-    },
-    data: {
-      imageUrl: imageData, // Envia a string base64 no campo "imageUrl"
-    },
-  };
-
-  try {
-    const response = await axios.request(options);
-    console.log("Resposta da API de OCR:", response.data); // Log da resposta para verificação
-    return response.data;
-  } catch (error) {
-    console.error('Erro ao chamar a API de reconhecimento de texto:', error);
-    throw error;
+// Verificar se o token JWT é válido
+const verificarJWT = (req, res, next) => {
+  const token = req.headers['authorization']?.split(' ')[1]; // Obtém o token do cabeçalho Authorization
+  if (!token) {
+      return res.status(401).json({ logado: false, mensagem: 'Token não foi enviado.' });
   }
-}
 
-function processarTexto(texto) {
-  // Remove quebras de linha e espaços extras
-  const cleanedText = texto.replace(/\n/g, ' ').trim();
-  const regexPlaca = /([A-Z]{2})\s+([\w\s]+?)\s+([A-Z]{3}-\d{4})/;
-  const match = cleanedText.match(regexPlaca);
-
-  if (match) {
-    const estado = match[1];
-    const cidade = match[2].trim();
-    const numeroPlaca = match[3].replace('-', ''); // Remove hífen se necessário
-
-    return { estado, cidade, numeroPlaca };
-  } else {
-    return null;
-  }
-}
+  jwt.verify(token, secretKey, (err, decoded) => {
+      if (err) {
+          return res.status(401).json({ logado: false, mensagem: 'Falha na autenticação' });
+      }
+      req.userId = decoded.id; // Armazena o ID do usuário no request
+      next();
+  });
+};
 
 // Rota POST para '/cadastroPlaca'
-app.post('/cadastroPlaca', upload.single('imagem'), async (req, res) => { 
+app.post('/cadastroPlaca', verificarJWT, upload.single('imagem'), async (req, res) => { 
   try {
     const imageFile = req.file;
 
@@ -152,7 +120,7 @@ app.post('/cadastroPlaca', upload.single('imagem'), async (req, res) => {
 });
 
 // Rota GET para '/consulta/:placa'
-app.get('/consulta/:placa', async (req, res) => {
+app.get('/consulta/:placa', verificarJWT, async (req, res) => {
   const { placa } = req.params;
 
   try {
@@ -170,7 +138,7 @@ app.get('/consulta/:placa', async (req, res) => {
 });
 
 // Rota GET para '/relatorio/:cidade'
-app.get('/relatorio/:cidade', async (req, res) => {
+app.get('/relatorio/:cidade', verificarJWT, async (req, res) => {
   const { cidade } = req.params;
 
   try {
@@ -206,33 +174,149 @@ app.get('/relatorio/:cidade', async (req, res) => {
 
 // Rota POST para '/cadastrarUsuario'
 app.post('/cadastrarUsuario', async (req, res) => {
+  //console.log('Requisição recebida:', req.body);  // Verifica o corpo da requisição no servidor
   try {
-    const { email, senha } = req.body;
+    const { nome, email, senha } = req.body;
 
-    // Verifica se o email já está cadastrado
-    const existingUser = await Usuario.findOne({ email }).exec();
-    if (existingUser) {
-      return res.status(400).send('Este email já está cadastrado.');
+    // Verifica se o email foi fornecido
+    if (!email) {
+      return res.status(400).json({ mensagem: 'Email é obrigatório.' });
     }
 
-    // Criptografa a senha antes de armazenar no banco de dados
-    const hashedPassword = await bcrypt.hash(senha, 10);
+    // Verifica se o email tem um formato válido
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ mensagem: 'Email inválido.' });
+    }
+
+    // Verificar se o email já está em uso
+    const usuarioExistente = await Usuario.findOne({ email });
+    if (usuarioExistente) {
+        return res.status(400).json({ mensagem: 'Email já cadastrado.' });
+    }
+
+    // Criptografar a senha
+    const salt = await bcrypt.genSalt(10);
+    const senhaCriptografada = await bcrypt.hash(senha, salt);
+    console.log('Senha criptografada:', senhaCriptografada); // Verifique se a senha está sendo criptografada corretamente
 
     // Cria um novo usuário
     const novoUsuario = new Usuario({
+      nome,
       email,
-      senha: hashedPassword,
+      senha: senhaCriptografada,
     });
 
     // Salva o novo usuário no banco de dados
     await novoUsuario.save();
 
-    res.status(201).send('Usuário cadastrado com sucesso.');
+    res.json({ mensagem: 'Usuário cadastrado com sucesso!' });
   } catch (error) {
     console.error(error);
-    res.status(500).send('Erro ao cadastrar o usuário.');
+    res.status(500).json({ message: 'Erro ao cadastrar o usuário.' });
   }
 });
+
+// Rota GET para '/videoTutorial'
+app.get('/videoTutorial', (req, res) => {
+  const videoPath = path.join(__dirname, 'videos', 'tutorial.mp4'); // Defina o caminho para o vídeo
+  const stat = fs.statSync(videoPath);
+  const fileSize = stat.size;
+  const range = req.headers.range;
+
+  if (range) {
+    // Existe um cabeçalho Range, enviamos uma parte do vídeo
+    const parts = range.replace(/bytes=/, '').split('-');
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+    const chunkSize = end - start + 1;
+    const file = fs.createReadStream(videoPath, { start, end });
+    const headers = {
+      'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': chunkSize,
+      'Content-Type': 'video/mp4',
+    };
+
+    res.writeHead(206, headers);
+    file.pipe(res);
+  } else {
+    // Sem cabeçalho Range, enviamos o arquivo completo
+    const headers = {
+      'Content-Length': fileSize,
+      'Content-Type': 'video/mp4',
+    };
+
+    res.writeHead(200, headers);
+    fs.createReadStream(videoPath).pipe(res);
+  }
+});
+
+// Rota de login que valida o email e senha e retorna um token JWT
+app.post('/login', async (req, res) => {
+  const { email, senha } = req.body;
+
+  const usuario = await Usuario.findOne({ email }).exec();
+  if (!usuario) {
+      return res.status(401).json({ mensagem: 'Usuário não encontrado.' });
+  }
+
+  const senhaValida = await bcrypt.compareSync(senha, usuario.senha);
+  if (!senhaValida) {
+      return res.status(401).json({ mensagem: 'Senha incorreta.' });
+  }
+
+  const token = jwt.sign({ id: usuario.id }, process.env.TOKEN_KEY, { expiresIn: '1h' });
+  res.json({ token });
+});
+
+// Função para reconhecer texto em uma imagem usando a API
+async function recognizeTextInImage(imageFile) { // Agora recebe um arquivo de imagem
+
+  const imageBase64 = fs.readFileSync(imageFile.path, { encoding: 'base64' });
+  const imageData = `data:image/png;base64,${imageBase64}`; // Formata corretamente
+
+  const options = {
+    method: 'POST',
+    url: ocrApiUrl,
+    headers: {
+      'content-type': apiContent,
+      'X-RapidAPI-Key': apiKey,
+      'X-RapidAPI-Host': apiHost,
+    },
+    data: {
+      imageUrl: imageData, // Envia a string base64 no campo "imageUrl"
+    },
+  };
+
+  try {
+    const response = await axios.request(options);
+    console.log("Resposta da API de OCR:", response.data); // Log da resposta para verificação
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao chamar a API de reconhecimento de texto:', error);
+    throw error;
+  }
+}
+
+// Função para processar e separar o texto na imagem
+function processarTexto(texto) {
+  // Remove quebras de linha e espaços extras
+  const cleanedText = texto.replace(/\n/g, ' ').trim();
+  const regexPlaca = /([A-Z]{2})\s+([\w\s]+?)\s+([A-Z]{3}-\d{4})/;
+  const match = cleanedText.match(regexPlaca);
+
+  if (match) {
+    const estado = match[1];
+    const cidade = match[2].trim();
+    const numeroPlaca = match[3].replace('-', ''); // Remove hífen se necessário
+
+    return { estado, cidade, numeroPlaca };
+  } else {
+    return null;
+  }
+}
 
 // Função para criar um PDF a partir dos registros de placa
 async function createPDF(placas) {

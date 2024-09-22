@@ -4,161 +4,72 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cadastro e Consulta de Placas</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-    }
-    form {
-      background-color: white;
-      padding: 20px;
-      margin-bottom: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    }
-    label {
-      display: block;
-      margin-bottom: 8px;
-    }
-    input[type="text"], input[type="file"] {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 10px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-    button {
-      padding: 10px 20px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #45a049;
-    }
-    #resultado, #pdfDownload {
-      margin-top: 20px;
-    }
-    #pdfDownload a {
-      padding: 10px 20px;
-      background-color: #2196F3;
-      color: white;
-      text-decoration: none;
-      border-radius: 4px;
-      display: inline-block;
-    }
-  </style>
+  <link rel="stylesheet" href="styles/index.css">
 </head>
 
 <body>
-  <h1>Cadastro e Consulta de Placas</h1>
+  <div id="login-section">
+    <h2>Login</h2>
+    <form id="login-form">
+      <label for="email">Email:</label>
+      <input type="email" id="login-email" name="email" required>
 
-  <!-- Formulário para cadastro de placa com imagem -->
-  <form id="cadastroPlacaForm">
-    <h2>Cadastrar Placa com Imagem</h2>
-    <label for="imagem">Selecione uma imagem:</label>
-    <input type="file" id="imagem" name="imagem" required>
-    <button type="submit">Enviar Imagem</button>
+      <label for="password">Senha:</label>
+      <input type="password" id="login-senha" name="password" required>
+
+      <button type="submit">Login</button>
+    </form>
+    <p id="login-error" class="error"></p>
+  </div>
+
+  <form id="cadastroUsuarioForm">
+    <h2>Cadastrar Usuário</h2>
+    <label for="nome">Nome:</label>
+    <input type="text" id="cadastro-nome" name="nome" required><br><br>
+
+    <label for="email">Email:</label>
+    <input type="email" id="cadastro-email" name="email" required><br><br>
+
+    <label for="senha">Senha:</label>
+    <input type="password" id="cadastro-senha" name="senha" required><br><br>
+
+    <button type="submit">Cadastrar</button>
   </form>
 
-  <!-- Formulário para consulta de placa -->
-  <form id="consultaPlacaForm">
-    <h2>Consultar Placa</h2>
-    <label for="placa">Digite o número da placa:</label>
-    <input type="text" id="placa" name="placa" required>
-    <button type="submit">Consultar</button>
-  </form>
+  <div id="actions-section" style="display: none;">
+    <h1>Cadastro e Consulta de Placas</h1>
 
-  <!-- Formulário para gerar relatório por cidade -->
-  <form id="relatorioCidadeForm">
-    <h2>Gerar Relatório por Cidade</h2>
-    <label for="cidade">Digite a cidade:</label>
-    <input type="text" id="cidade" name="cidade" required>
-    <button type="submit">Gerar Relatório</button>
-  </form>
+    <!-- Formulário para cadastro de placa com imagem -->
+    <form id="cadastroPlacaForm">
+      <h2>Cadastrar Placa com Imagem</h2>
+      <label for="imagem">Selecione uma imagem:</label>
+      <input type="file" id="imagem" name="imagem" required>
+      <button type="submit">Enviar Imagem</button>
+      <p id="mensagem-cadastro-placa"></p>
+    </form>
 
-  <div id="resultado"></div>
-  <div id="pdfDownload"></div>
+    <!-- Formulário para consulta de placa -->
+    <form id="consultaPlacaForm">
+      <h2>Consultar Placa</h2>
+      <label for="placa">Digite o número da placa:</label>
+      <input type="text" id="placa" name="placa" required>
+      <button type="submit">Consultar</button>
+      <p id="mensagem-consulta-placa"></p>
+    </form>
 
-  <script>
-    const apiUrl = 'https://leitor-de-placa.vercel.app' // Substitua com o URL do seu backend
+    <!-- Formulário para gerar relatório por cidade -->
+    <form id="relatorioCidadeForm">
+      <h2>Gerar Relatório por Cidade</h2>
+      <label for="cidade">Digite a cidade:</label>
+      <input type="text" id="cidade" name="cidade" required>
+      <button type="submit">Gerar Relatório</button>
+      <div id="pdfDownload"></div>
+      <p id="mensagem-pdf"></p>
+    </form>
+  </div>  
 
-    // Função para cadastro de placa
-    document.getElementById('cadastroPlacaForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData();
-      const imagem = document.getElementById('imagem').files[0];
-
-      if (!imagem) {
-        alert("Por favor, selecione uma imagem.");
-        return;
-      }
-
-      formData.append('imagem', imagem);
-
-      try {
-        const response = await fetch(`/cadastroPlaca`, {
-          method: 'POST',
-          body: formData
-        });
-
-        const resultado = await response.text();
-        document.getElementById('resultado').innerText = resultado;
-      } catch (error) {
-        console.error('Erro ao enviar imagem:', error);
-        document.getElementById('resultado').innerText = 'Erro ao enviar a imagem.';
-      }
-    });
-
-    // Função para consulta de placa
-    document.getElementById('consultaPlacaForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const placa = document.getElementById('placa').value;
-
-      try {
-        const response = await fetch(`/consulta/${placa}`);
-        if (response.ok) {
-          const resultado = await response.json();
-          document.getElementById('resultado').innerText = JSON.stringify(resultado, null, 2);
-        } else {
-          const erro = await response.text();
-          document.getElementById('resultado').innerText = erro;
-        }
-      } catch (error) {
-        console.error('Erro ao consultar a placa:', error);
-        document.getElementById('resultado').innerText = 'Erro ao consultar a placa.';
-      }
-    });
-
-    // Função para gerar relatório por cidade
-    document.getElementById('relatorioCidadeForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const cidade = document.getElementById('cidade').value;
-
-      try {
-        const response = await fetch(`/relatorio/${cidade}`, {
-          method: 'GET',
-        });
-
-        if (response.ok) {
-          const blob = await response.blob();
-          const url = window.URL.createObjectURL(blob);
-          document.getElementById('pdfDownload').innerHTML = `<a href="${url}" download="relatorio_${cidade}.pdf">Baixar Relatório</a>`;
-        } else {
-          const erro = await response.text();
-          document.getElementById('resultado').innerText = erro;
-        }
-      } catch (error) {
-        console.error('Erro ao gerar o relatório:', error);
-        document.getElementById('resultado').innerText = 'Erro ao gerar o relatório.';
-      }
-    });
+  <script src="index.js">
   </script>
+
 </body>
 </html>
