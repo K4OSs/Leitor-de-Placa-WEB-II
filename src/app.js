@@ -15,18 +15,19 @@ const bcrypt = require('bcrypt');
 const helmet = require('helmet');
 const jwt = require('jsonwebtoken');
 
-const port = process.env.PORT;
+const port = process.env.PORT || 3000;
 const secretKey = process.env.TOKEN_KEY; // Defina uma chave secreta no arquivo .env
 const ocrApiUrl = process.env.OCR_API_URL;
 const apiContent = process.env.API_CONTENT_TYPE;
 const apiKey = process.env.API_KEY;
 const apiHost = process.env.API_HOST;
-const frontendUrl = process.env.FRONTEND_URL
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 const corsOptions = {
-  origin: [frontendUrl, `http://localhost:3000`],
+  origin: process.env.NODE_ENV === 'production' ? frontendUrl : '*', // Permitir qualquer origem em dev
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-  credentials: false, // Habilita o uso de credenciais, se necessário
+  credentials: true, // Habilita o uso de credenciais, se necessário
+  exposedHeaders: ['x-auth-token'],
   optionsSuccessStatus: 204, // Retorna um status 204 para as solicitações OPTIONS
 };
 
@@ -350,7 +351,7 @@ async function createPDF(placas) {
 }
 
 app.listen(port, () => {
-  console.log(`Servidor rodando em http://localhost:${port}`);
+  console.log(`Servidor rodando na porta`, `${port}`);
 });
 
 module.exports = app

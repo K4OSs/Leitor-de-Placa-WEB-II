@@ -1,4 +1,6 @@
-const apiUrl = process.env.FRONTEND_URL;
+const apiUrl = window.location.hostname === 'localhost'
+  ? 'http://localhost:3000' // Para desenvolvimento local
+  : 'https://leitor-de-placa-web-ii.onrender.com'; // URL de produção
 
 document.addEventListener('DOMContentLoaded', () => {
   const loginForm = document.getElementById('login-form');
