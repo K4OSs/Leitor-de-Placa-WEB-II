@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro e Consulta de Placas</title>
+    <link rel="stylesheet" href="styles/actions-styles.css">
+  </head>
+
+  <body> 
+    <div id="actions-section">
+      <h1>Cadastro e Consulta de Placas</h1>
+      <!-- Formulário para cadastro de placa com imagem -->
+      <form id="cadastroPlacaForm">
+        
+        <h2>Cadastrar Placa com Imagem</h2>
+  
+        <div class="input-box">
+          <label for="imagem">Selecione uma imagem:</label>
+          <input type="file" id="imagem" name="imagem" required>
+        </div>
+  
+        <button type="submit">Enviar Imagem</button>
+        <p id="mensagem-erro-cadastro-placa" class="mensagem-erro"></p>
+        <p id="mensagem-cadastro-placa"></p>
+      </form>
+  
+      <!-- Formulário para consulta de placa -->
+      <form id="consultaPlacaForm">
+        <h2>Consultar Placa</h2>
+  
+        <div class="input-box">
+          <label for="placa">Digite o número da placa:</label>
+          <input type="text" id="placa" name="placa" required>
+        </div>
+  
+        <button type="submit">Consultar</button>
+        <p id="info-placa"></p>
+        <p id="mensagem-consulta-placa" class="mensagem-erro"></p>
+      </form>
+  
+      <!-- Formulário para gerar relatório por cidade -->
+      <form id="relatorioCidadeForm">
+        <h2>Gerar Relatório por Cidade</h2>
+  
+        <div class="input-box">
+          <label for="cidade">Digite a cidade:</label>
+          <input type="text" id="cidade" name="cidade" required>
+        </div>
+  
+        <button type="submit">Gerar Relatório</button>
+        <div id="pdfDownload"></div>
+        <p id="mensagem-relatorio" class="mensagem-erro"></p>
+      </form>
+    </div>
+
+    <!-- Adicionando o vídeo tutorial -->
+    <div id="video-tutorial-section">
+      <h2>Vídeo Tutorial</h2>
+      <video id="tutorialVideo" controls>
+        <source src="" type="video/mp4">  <!--O src será definido pelo JavaScript--> 
+        Seu navegador não suporta o elemento de vídeo.
+      </video>
+    </div>
+
+    <script src="index.js">
+    </script>
+
+  </body>
+
+</html>

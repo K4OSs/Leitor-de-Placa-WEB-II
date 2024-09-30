@@ -4,68 +4,61 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cadastro e Consulta de Placas</title>
-  <link rel="stylesheet" href="styles/index.css">
+  <link rel="stylesheet" href="styles/index-styles.css">
 </head>
 
 <body>
-  <div id="login-section">
-    <h2>Login</h2>
-    <form id="login-form">
-      <label for="email">Email:</label>
-      <input type="email" id="login-email" name="email" required>
 
-      <label for="password">Senha:</label>
-      <input type="password" id="login-senha" name="password" required>
+  <!-- Formulário para login de usuário -->
+  <div id="wrapper">
 
-      <button type="submit">Login</button>
-    </form>
-    <p id="login-error" class="error"></p>
-  </div>
+    <div id="login-section">
+      <form id="login-form" >
+        <h2>Login</h2>
+        <div class="input-box">
+          <input placeholder="Email" type="email" id="login-email" name="email" required>
+        </div>
 
-  <form id="cadastroUsuarioForm">
-    <h2>Cadastrar Usuário</h2>
-    <label for="nome">Nome:</label>
-    <input type="text" id="cadastro-nome" name="nome" required><br><br>
+        <div class="input-box">
+          <input placeholder="Senha" type="password" id="login-senha" name="password" required>
+        </div>
+        <button id="login-btn" type="submit">Login</button>
+      </form>
+      <p id="login-error" class="error"></p>
 
-    <label for="email">Email:</label>
-    <input type="email" id="cadastro-email" name="email" required><br><br>
+      <!-- Botão para exibir o formulário de cadastro de usuário -->
+      <div id="register-link">
+        <p>Não tem uma conta?
+        <a href="#" id="novo-cadastro-link">Novo Cadastro</a></p>
+      </div>
+    </div>  
 
-    <label for="senha">Senha:</label>
-    <input type="password" id="cadastro-senha" name="senha" required><br><br>
+    <!-- Formulário para cadastro de usuário -->
+    <div id="cadastro-section" style="display: none;">
+      <form id="cadastroUsuarioForm">
+        <h2>Cadastrar Usuário</h2>
+        <div class="input-box">
+          <input placeholder="Nome" type="text" id="cadastro-nome" name="nome" required><br><br>
+        </div>
 
-    <button type="submit">Cadastrar</button>
-  </form>
+        <div class="input-box">
+        <input placeholder="Email" type="email" id="cadastro-email" name="email" required><br><br>
+        </div>
 
-  <div id="actions-section" style="display: none;">
-    <h1>Cadastro e Consulta de Placas</h1>
+        <div class="input-box">
+          <input placeholder="Senha" type="password" id="cadastro-senha" name="senha" required><br><br>
+        </div>
 
-    <!-- Formulário para cadastro de placa com imagem -->
-    <form id="cadastroPlacaForm">
-      <h2>Cadastrar Placa com Imagem</h2>
-      <label for="imagem">Selecione uma imagem:</label>
-      <input type="file" id="imagem" name="imagem" required>
-      <button type="submit">Enviar Imagem</button>
-      <p id="mensagem-cadastro-placa"></p>
-    </form>
+        <button id="cadastro-btn" type="submit">Cadastrar</button>
+      </form>
 
-    <!-- Formulário para consulta de placa -->
-    <form id="consultaPlacaForm">
-      <h2>Consultar Placa</h2>
-      <label for="placa">Digite o número da placa:</label>
-      <input type="text" id="placa" name="placa" required>
-      <button type="submit">Consultar</button>
-      <p id="mensagem-consulta-placa"></p>
-    </form>
-
-    <!-- Formulário para gerar relatório por cidade -->
-    <form id="relatorioCidadeForm">
-      <h2>Gerar Relatório por Cidade</h2>
-      <label for="cidade">Digite a cidade:</label>
-      <input type="text" id="cidade" name="cidade" required>
-      <button type="submit">Gerar Relatório</button>
-      <div id="pdfDownload"></div>
-      <p id="mensagem-pdf"></p>
-    </form>
+      <!-- Botão para exibir o formulário de cadastro de usuário -->
+      <div id="login-link">
+        <p>Já tem uma conta? 
+        <a href="#" id="novo-login-link">Login</a></p>
+      </div>
+    </div>
+  
   </div>  
 
   <script src="index.js">

@@ -220,7 +220,7 @@ app.post('/cadastrarUsuario', async (req, res) => {
 
 // Rota GET para '/videoTutorial'
 app.get('/videoTutorial', (req, res) => {
-  const videoPath = path.join(__dirname, 'videos', 'tutorial.mp4'); // Defina o caminho para o vídeo
+  const videoPath = path.join('./videos/video_origami.mp4'); // Defina o caminho para o vídeo
   const stat = fs.statSync(videoPath);
   const fileSize = stat.size;
   const range = req.headers.range;
